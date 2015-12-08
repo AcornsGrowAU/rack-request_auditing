@@ -7,7 +7,7 @@ module Rack
 
       def initialize(value = generate_value)
         if value < 0 || value >= UPPER_BOUND
-          fail ArgumentError.new("Value out of bounds")
+          fail ArgumentError.new('Value out of bounds')
         end
 
         @value = value

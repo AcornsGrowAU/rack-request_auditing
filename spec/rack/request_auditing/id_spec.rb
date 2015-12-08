@@ -27,7 +27,7 @@ describe Rack::RequestAuditing::Id do
     end
 
     context 'when value is not provided' do
-      it "sets value to generated value" do
+      it 'sets value to generated value' do
         allow_any_instance_of(described_class).to receive(:generate_value)
           .and_return(5678)
         id = described_class.new

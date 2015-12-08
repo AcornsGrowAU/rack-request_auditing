@@ -14,6 +14,10 @@ module Rack
       end
 
       def call(env)
+        dup._call(env)
+      end
+
+      def _call(env)
         begin
           validate_or_set_id(env, CORRELATION_ID_KEY)
         rescue InvalidExternalId

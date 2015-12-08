@@ -12,6 +12,22 @@ describe Rack::RequestAuditing::Auditor do
 
   describe '#call' do
     let(:env) { double('env').as_null_object }
+    let(:dup_middleware) { double('duplicate middleware').as_null_object }
+
+    it 'duplicates itself' do
+      expect(subject).to receive(:dup).and_return(dup_middleware)
+      subject.call(env)
+    end
+
+    it 'calls _call on the duplicated instance' do
+      allow(subject).to receive(:dup).and_return(dup_middleware)
+      expect(dup_middleware).to receive(:_call).with(env)
+      subject.call(env)
+    end
+  end
+
+  describe '#_call' do
+    let(:env) { double('env').as_null_object }
     let(:response_headers) { double('response headers').as_null_object }
     let(:middleware_response) { [double, response_headers, double] }
     let(:correlation_id) { double('correlation id') }
@@ -28,7 +44,7 @@ describe Rack::RequestAuditing::Auditor do
     it 'sets the env correlation id header' do
       expect(subject).to receive(:validate_or_set_id)
         .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
-      subject.call(env)
+      subject._call(env)
     end
 
     context 'when setting the correlation id header raises InvalidExternalId' do
@@ -36,14 +52,14 @@ describe Rack::RequestAuditing::Auditor do
         allow(subject).to receive(:validate_or_set_id)
           .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
           .and_raise(Rack::RequestAuditing::Auditor::InvalidExternalId)
-        expect(subject.call(env)).to eq([422, {}, ['Invalid Correlation Id']])
+        expect(subject._call(env)).to eq([422, {}, ['Invalid Correlation Id']])
       end
     end
 
     it 'sets the env request id header' do
       expect(subject).to receive(:validate_or_set_id)
         .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-      subject.call(env)
+      subject._call(env)
     end
 
     context 'when setting the request id header raises InvalidExternalId' do
@@ -51,13 +67,13 @@ describe Rack::RequestAuditing::Auditor do
         allow(subject).to receive(:validate_or_set_id)
           .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
           .and_raise(Rack::RequestAuditing::Auditor::InvalidExternalId)
-        expect(subject.call(env)).to eq([422, {}, ['Invalid Request Id']])
+        expect(subject._call(env)).to eq([422, {}, ['Invalid Request Id']])
       end
     end
 
     it 'passes the incoming request along to the rack app' do
       expect(app).to receive(:call).with(env).and_return(middleware_response)
-      subject.call(env)
+      subject._call(env)
     end
 
     it 'sets the correlation id header in the response headers' do
@@ -68,7 +84,7 @@ describe Rack::RequestAuditing::Auditor do
         .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
       expect(response_headers).to receive(:[]=)
         .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_HEADER, id)
-      subject.call(env)
+      subject._call(env)
     end
 
     it 'sets the request id header in the response headers' do
@@ -79,7 +95,7 @@ describe Rack::RequestAuditing::Auditor do
         .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY).and_return(id)
       expect(response_headers).to receive(:[]=)
         .with(Rack::RequestAuditing::Auditor::REQUEST_ID_HEADER, id)
-      subject.call(env)
+      subject._call(env)
     end
 
     it 'returns the formatted rack response' do
@@ -87,7 +103,7 @@ describe Rack::RequestAuditing::Auditor do
         .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
       allow(env).to receive(:[])
         .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-      expect(subject.call(env)).to eq middleware_response
+      expect(subject._call(env)).to eq middleware_response
     end
   end
 

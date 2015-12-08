@@ -1,4 +1,5 @@
 require 'rack/request_auditing/version'
+require 'rack/request_auditing/id'
 
 module Rack
   module RequestAuditing

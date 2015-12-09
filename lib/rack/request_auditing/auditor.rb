@@ -3,7 +3,6 @@ module Rack
     class Auditor
       class InvalidExternalId < StandardError; end
 
-      ID_REGEX = /^[a-f0-9]{16}$/i
       CORRELATION_ID_KEY = 'HTTP_CORRELATION_ID'.freeze
       CORRELATION_ID_HEADER = 'Correlation-Id'.freeze
       REQUEST_ID_KEY = 'HTTP_REQUEST_ID'.freeze
@@ -18,41 +17,35 @@ module Rack
       end
 
       def _call(env)
-        begin
-          validate_or_set_id(env, CORRELATION_ID_KEY)
-        rescue InvalidExternalId
-          return [ 422, {}, ['Invalid Correlation Id'] ]
+        Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, CORRELATION_ID_KEY)
+        Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, REQUEST_ID_KEY)
+
+        correlation_id = env[CORRELATION_ID_KEY]
+        request_id = env[REQUEST_ID_KEY]
+
+        if correlation_id && request_id
+          status, headers, body = @app.call(env)
+        else
+          status, headers, body = error_response(env)
         end
 
-        begin
-          validate_or_set_id(env, REQUEST_ID_KEY)
-        rescue InvalidExternalId
-          return [ 422, {}, ['Invalid Request Id'] ]
-        end
+        headers[CORRELATION_ID_HEADER] = correlation_id if correlation_id
+        headers[REQUEST_ID_HEADER] = request_id if request_id
 
-        status, headers, body = @app.call(env)
-        headers[CORRELATION_ID_HEADER] = env[CORRELATION_ID_KEY]
-        headers[REQUEST_ID_HEADER] = env[REQUEST_ID_KEY]
         return [ status, headers, body ]
       end
 
       private
 
-      def validate_or_set_id(env, env_key)
-        if env.has_key?(env_key)
-          fail InvalidExternalId unless valid_id?(env[env_key])
-        else
-          env[env_key] = internal_id
-        end
+      def error_response(env)
+        return [ 422, {}, error_body(env) ]
       end
 
-      def valid_id?(value)
-        return true if value && value.match(ID_REGEX)
-        return false
-      end
-
-      def internal_id
-        return Rack::RequestAuditing::Id.new.to_hex
+      def error_body(env)
+        errors = []
+        errors << 'Invalid Correlation Id' if env[CORRELATION_ID_KEY].nil?
+        errors << 'Invalid Request Id' if env[REQUEST_ID_KEY].nil?
+        return [ errors.join(" and ") ]
       end
     end
   end

@@ -24,16 +24,17 @@ describe 'Rack::RequestAuditing middleware' do
 
     context 'when the correlation id is invalid' do
       it 'returns error response' do
-        original_id = '1234'
-        header 'Correlation-Id', original_id
+        header 'Correlation-Id', '1234'
         get '/foo'
         expect(last_response.status).to eq 422
-        expect(last_response.body).to eq 'Invalid Correlation Id'
+        expect(last_response.headers).not_to include('Correlation-Id')
+        expect(last_response.headers).to include('Request-Id')
+        expect(last_response.body).to include 'Invalid Correlation Id'
       end
     end
   end
 
-  context 'when the correlation is not set' do
+  context 'when the correlation id is not set' do
     it 'sets the correlation id' do
       get '/foo'
       id = last_response.headers['Correlation-Id']
@@ -54,11 +55,12 @@ describe 'Rack::RequestAuditing middleware' do
 
     context 'when the request id is invalid' do
       it 'returns error response' do
-        original_id = '1234'
-        header 'Request-Id', original_id
+        header 'Request-Id', '1234'
         get '/foo'
         expect(last_response.status).to eq 422
-        expect(last_response.body).to eq 'Invalid Request Id'
+        expect(last_response.headers).to include('Correlation-Id')
+        expect(last_response.headers).not_to include('Request-Id')
+        expect(last_response.body).to include 'Invalid Request Id'
       end
     end
   end

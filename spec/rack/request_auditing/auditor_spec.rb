@@ -27,169 +27,179 @@ describe Rack::RequestAuditing::Auditor do
   end
 
   describe '#_call' do
-    let(:env) { double('env').as_null_object }
-    let(:response_headers) { double('response headers').as_null_object }
-    let(:middleware_response) { [double, response_headers, double] }
-    let(:correlation_id) { double('correlation id') }
-    let(:request_id) { double('request id') }
+    let(:env) { double('env') }
 
     before do
-      allow(app).to receive(:call).and_return(middleware_response)
-      allow(subject).to receive(:validate_or_set_id)
-        .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
-      allow(subject).to receive(:validate_or_set_id)
-        .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-    end
-
-    it 'sets the env correlation id header' do
-      expect(subject).to receive(:validate_or_set_id)
-        .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
-      subject._call(env)
-    end
-
-    context 'when setting the correlation id header raises InvalidExternalId' do
-      it 'returns error response' do
-        allow(subject).to receive(:validate_or_set_id)
-          .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
-          .and_raise(Rack::RequestAuditing::Auditor::InvalidExternalId)
-        expect(subject._call(env)).to eq([422, {}, ['Invalid Correlation Id']])
-      end
-    end
-
-    it 'sets the env request id header' do
-      expect(subject).to receive(:validate_or_set_id)
-        .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-      subject._call(env)
-    end
-
-    context 'when setting the request id header raises InvalidExternalId' do
-      it 'returns error response' do
-        allow(subject).to receive(:validate_or_set_id)
-          .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-          .and_raise(Rack::RequestAuditing::Auditor::InvalidExternalId)
-        expect(subject._call(env)).to eq([422, {}, ['Invalid Request Id']])
-      end
-    end
-
-    it 'passes the incoming request along to the rack app' do
-      expect(app).to receive(:call).with(env).and_return(middleware_response)
-      subject._call(env)
-    end
-
-    it 'sets the correlation id header in the response headers' do
-      id = double('correlation id')
-      allow(env).to receive(:[])
-        .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY).and_return(id)
-      allow(env).to receive(:[])
-        .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-      expect(response_headers).to receive(:[]=)
-        .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_HEADER, id)
-      subject._call(env)
-    end
-
-    it 'sets the request id header in the response headers' do
-      allow(env).to receive(:[])
-        .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
-      id = double('request id')
-      allow(env).to receive(:[])
-        .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY).and_return(id)
-      expect(response_headers).to receive(:[]=)
-        .with(Rack::RequestAuditing::Auditor::REQUEST_ID_HEADER, id)
-      subject._call(env)
-    end
-
-    it 'returns the formatted rack response' do
       allow(env).to receive(:[])
         .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
       allow(env).to receive(:[])
         .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
-      expect(subject._call(env)).to eq middleware_response
-    end
-  end
-
-  describe '#valid_id?' do
-    context 'when the id is nil' do
-      it 'returns false' do
-        expect(subject.send(:valid_id?, nil)).to eq false
-      end
+      allow(Rack::RequestAuditing::HeaderProcessor).to receive(:ensure_valid_id)
+        .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+      allow(Rack::RequestAuditing::HeaderProcessor).to receive(:ensure_valid_id)
+        .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
     end
 
-    context 'when the id is not nil' do
-      let(:correlation_id) { double('id') }
-
-      context 'when the id matches the id format' do
-        it 'returns true' do
-          allow(correlation_id).to receive(:match)
-            .with(Rack::RequestAuditing::Auditor::ID_REGEX).and_return(double)
-          expect(subject.send(:valid_id?, correlation_id))
-            .to eq true
-        end
-      end
-
-      context 'when the correlation id does not match the id format' do
-        it 'returns false' do
-          allow(correlation_id).to receive(:match)
-            .with(Rack::RequestAuditing::Auditor::ID_REGEX).and_return(nil)
-          expect(subject.send(:valid_id?, correlation_id))
-            .to eq false
-        end
-      end
+    it 'ensures a valid correlation id was sent or sets a generated one' do
+      expect(Rack::RequestAuditing::HeaderProcessor)
+        .to receive(:ensure_valid_id)
+        .with(env, Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+      subject._call(env)
     end
-  end
 
-  describe '#validate_or_set_id' do
-    let(:env) { double('env') }
-    let(:env_key) { double('http header key') }
+    it 'ensures a valid request id was sent or sets a generated one' do
+      expect(Rack::RequestAuditing::HeaderProcessor)
+        .to receive(:ensure_valid_id)
+        .with(env, Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+      subject._call(env)
+    end
 
-    context 'when there is an external id header' do
-      let(:id) { double('external id') }
+    context 'when neither the correlation or request id is missing' do
+      let(:correlation_id) { double('correlation id') }
+      let(:request_id) { double('request id') }
+      let(:response_headers) { double('response headers').as_null_object }
+      let(:middleware_response) { [ double, response_headers, double ] }
 
       before do
-        allow(env).to receive(:has_key?).with(env_key).and_return(true)
-        allow(env).to receive(:[]).with(env_key).and_return(id)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+          .and_return(correlation_id)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+          .and_return(request_id)
       end
 
-      context 'when there is a valid external id' do
-        it 'does not raise validation error' do
-          allow(subject).to receive(:valid_id?).with(id).and_return(true)
-          expect{ subject.send(:validate_or_set_id, env, env_key) }
-            .not_to raise_error
-        end
-
-        it 'does not reset the id' do
-          allow(subject).to receive(:valid_id?).with(id).and_return(true)
-          expect(env).not_to receive(:[]=)
-          subject.send(:validate_or_set_id, env, env_key)
-        end
+      it 'passes the incoming request along to the rack app' do
+        expect(app).to receive(:call).with(env).and_return(middleware_response)
+        subject._call(env)
       end
 
-      context 'when there is not a valid external id' do
-        it 'raises InvalidExternalId' do
-          allow(subject).to receive(:valid_id?).with(id).and_return(false)
-          expect{ subject.send(:validate_or_set_id, env, env_key) }
-            .to raise_error(Rack::RequestAuditing::Auditor::InvalidExternalId)
-        end
+      it 'sets the correlation id header in the response headers' do
+        allow(app).to receive(:call).with(env).and_return(middleware_response)
+        expect(response_headers).to receive(:[]=)
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_HEADER, correlation_id)
+        subject._call(env)
+      end
+
+      it 'sets the request id header in the response headers' do
+        allow(app).to receive(:call).with(env).and_return(middleware_response)
+        expect(response_headers).to receive(:[]=)
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_HEADER, request_id)
+        subject._call(env)
+      end
+
+      it 'returns the formatted rack response' do
+        allow(app).to receive(:call).with(env).and_return(middleware_response)
+        expect(subject._call(env)).to eq middleware_response
       end
     end
 
-    context 'when there is not an external id header' do
-      it 'sets the id' do
-        allow(env).to receive(:has_key?).with(env_key).and_return(false)
-        id = double('internal id')
-        allow(subject).to receive(:internal_id).and_return(id)
-        expect(env).to receive(:[]=).with(env_key, id)
-        subject.send(:validate_or_set_id, env, env_key)
+    context 'when the correlation or request id is missing' do
+      it 'creates the error response' do
+        expect(subject).to receive(:error_response).with(env)
+        subject._call(env)
+      end
+
+      context 'when the correlation id is available' do
+        it 'sets the correlation id header in the response headers' do
+          id = double('correlation id')
+          allow(env).to receive(:[])
+            .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+            .and_return(id)
+          response_headers = double('response headers').as_null_object
+          response = [ double, response_headers, double ]
+          allow(subject).to receive(:error_response).with(env)
+            .and_return(response)
+          expect(response_headers).to receive(:[]=)
+            .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_HEADER, id)
+          subject._call(env)
+        end
+      end
+
+      context 'when the request id is available' do
+        it 'sets the request id header in the response headers' do
+          id = double('request id')
+          allow(env).to receive(:[])
+            .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY).and_return(id)
+          response_headers = double('response headers').as_null_object
+          response = [ double, response_headers, double ]
+          allow(subject).to receive(:error_response).with(env)
+            .and_return(response)
+          expect(response_headers).to receive(:[]=)
+            .with(Rack::RequestAuditing::Auditor::REQUEST_ID_HEADER, id)
+          subject._call(env)
+        end
+      end
+
+      it 'returns the formatted rack response' do
+        response = [ double, double, double ]
+        allow(subject).to receive(:error_response).with(env)
+          .and_return(response)
+        expect(subject._call(env)).to eq response
       end
     end
   end
 
-  describe '#internal_id' do
-    it 'returns a new Rack::RequestAuditing::Id hex representation' do
-      id = double('id')
-      allow(Rack::RequestAuditing::Id).to receive(:new).and_return(id)
-      hex_representation = double('hex string')
-      allow(id).to receive(:to_hex).and_return(hex_representation)
-      expect(subject.send(:internal_id)).to eq(hex_representation)
+  describe '#error_response' do
+    let(:env) { double('env') }
+
+    it 'returns the error response with environment-dependent error body' do
+      error_body = double('error body')
+      allow(subject).to receive(:error_body).with(env).and_return(error_body)
+      expect(subject.send(:error_response, env)).to eq([422, {}, error_body])
+    end
+  end
+
+  describe '#error_body' do
+    let(:env) { double('env') }
+
+    context 'when only correlation id is missing' do
+      it 'returns correlation id error message' do
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+          .and_return(double)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+          .and_return(nil)
+        expect(subject.send(:error_body, env)).to eq ['Invalid Correlation Id']
+      end
+    end
+
+    context 'when only request id is missing' do
+      it 'returns correlation id error message' do
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+          .and_return(nil)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+          .and_return(double)
+        expect(subject.send(:error_body, env)).to eq ['Invalid Request Id']
+      end
+    end
+
+    context 'when both correlation and request id are missing' do
+      it 'returns correlation and request id error message' do
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+          .and_return(nil)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+          .and_return(nil)
+        expect(subject.send(:error_body, env))
+          .to eq ['Invalid Correlation Id and Invalid Request Id']
+      end
+    end
+
+    context 'when neither correlation or request id are missing' do
+      it 'returns blank string' do
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::REQUEST_ID_KEY)
+          .and_return(double)
+        allow(env).to receive(:[])
+          .with(Rack::RequestAuditing::Auditor::CORRELATION_ID_KEY)
+          .and_return(double)
+        expect(subject.send(:error_body, env)).to eq ['']
+      end
     end
   end
 end

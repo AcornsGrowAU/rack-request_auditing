@@ -17,9 +17,19 @@ module Rack
       end
 
       def _call(env)
+        ensure_valid_ids(env)
+        response = build_response(env)
+        return response
+      end
+
+      private
+
+      def ensure_valid_ids(env)
         Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, CORRELATION_ID_KEY)
         Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, REQUEST_ID_KEY)
+      end
 
+      def build_response(env)
         correlation_id = env[CORRELATION_ID_KEY]
         request_id = env[REQUEST_ID_KEY]
 
@@ -35,8 +45,6 @@ module Rack
         return [ status, headers, body ]
       end
 
-      private
-
       def error_response(env)
         return [ 422, {}, error_body(env) ]
       end
@@ -45,7 +53,7 @@ module Rack
         errors = []
         errors << 'Invalid Correlation Id' if env[CORRELATION_ID_KEY].nil?
         errors << 'Invalid Request Id' if env[REQUEST_ID_KEY].nil?
-        return [ errors.join(" and ") ]
+        return [ errors.join(' and ') ]
       end
     end
   end

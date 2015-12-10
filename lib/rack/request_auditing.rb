@@ -1,3 +1,5 @@
+require 'request_auditing/logger'
+
 module Rack
   module RequestAuditing
     autoload :Auditor,         'rack/request_auditing/auditor'
@@ -5,8 +7,10 @@ module Rack
     autoload :Id,              'rack/request_auditing/id'
     autoload :Version,         'rack/request_auditing/version'
 
-    def self.new(app)
-      Auditor.new(app)
+    LOGGER_KEY = 'rack.logger'.freeze
+
+    def self.new(app, options = {})
+      Auditor.new(app, options)
     end
   end
 end

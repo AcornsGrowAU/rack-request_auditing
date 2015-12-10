@@ -59,6 +59,26 @@ You can read about rails middleware in their [guide](http://guides.rubyonrails.o
 config.middleware.use Rack::RequestAuditing
 ```
 
+## Logging
+
+A logger may be provided in the options hash as a second argument.
+
+```ruby
+# config.ru
+use Rack::RequestAuditing, logger: Logger.new(STDOUT)
+```
+
+When this option is not provided, a `STDOUT` logger instance will be created.
+
+The logger instance will be extended with `RequestAuditing::AuditLogging` and
+made available in the rack environment as `rack.header`.  Logging with
+this instance will produce logs tagged with the correlation, request, and parent
+id values.
+
+For example, `env["rack.header"].info("foo")` will produce:
+`2015-12-09 18:06:11,002 [] INFO foo - correlation_id="9d9ea84356799aac", request_id="07dce5aafdcf2731", parent_id=null`
+
+When a value is not available, it will be logged as `null`.
 
 ## Development
 

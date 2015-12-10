@@ -8,6 +8,7 @@ module Rack
           env[env_key] = internal_id
         else
           unless valid_id?(env[env_key])
+            env[Rack::RequestAuditing::LOGGER_KEY].error("Invalid #{env_key}")
             env.delete(env_key)
           end
         end

@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Rack::RequestAuditing::HeaderProcessor do
   describe '.ensure_valid_id' do
     let(:env) { double('env') }
-    let(:key) { double('http header key') }
+    let(:key) { double('http header key', to_s: 'HTTP_FOO_ID') }
 
     context 'when the id should not be generated' do
       let(:id) { double('external id') }
@@ -31,9 +31,23 @@ describe Rack::RequestAuditing::HeaderProcessor do
       end
 
       context 'when there is not a valid external id' do
-        it 'deletes the invalid header' do
+        let(:logger) { double('logger') }
+
+        before do
+          allow(env).to receive(:[]).with(Rack::RequestAuditing::LOGGER_KEY)
+            .and_return(logger)
           allow(described_class).to receive(:valid_id?).with(id)
             .and_return(false)
+        end
+
+        it 'logs the error' do
+          expect(logger).to receive(:error).with('Invalid HTTP_FOO_ID')
+          allow(env).to receive(:delete).with(key)
+          described_class.send(:ensure_valid_id, env, key)
+        end
+
+        it 'deletes the invalid header' do
+          allow(logger).to receive(:error).with('Invalid HTTP_FOO_ID')
           expect(env).to receive(:delete).with(key)
           described_class.send(:ensure_valid_id, env, key)
         end

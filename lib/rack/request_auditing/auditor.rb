@@ -1,3 +1,5 @@
+require 'request_auditing/audit_logging'
+
 module Rack
   module RequestAuditing
     class Auditor
@@ -8,8 +10,9 @@ module Rack
       REQUEST_ID_KEY = 'HTTP_REQUEST_ID'.freeze
       REQUEST_ID_HEADER = 'Request-Id'.freeze
 
-      def initialize(app)
+      def initialize(app, options = {})
         @app = app
+        @logger = options[:logger] || ::RequestAuditing::Logger.new(STDOUT)
       end
 
       def call(env)
@@ -17,12 +20,25 @@ module Rack
       end
 
       def _call(env)
+        set_audit_logger(env)
+        logger = env[Rack::RequestAuditing::LOGGER_KEY]
         ensure_valid_ids(env)
+        logger.info 'sr'
         response = build_response(env)
+        logger.info 'ss'
         return response
       end
 
       private
+
+      def set_audit_logger(env)
+        audit_logger = @logger.dup
+        unless audit_logger.is_a?(::RequestAuditing::Logger)
+          audit_logger.extend(::RequestAuditing::AuditLogging)
+        end
+        audit_logger.set_formatter_env(env)
+        env[Rack::RequestAuditing::LOGGER_KEY] = audit_logger
+      end
 
       def ensure_valid_ids(env)
         Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, CORRELATION_ID_KEY)

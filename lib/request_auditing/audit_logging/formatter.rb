@@ -7,7 +7,7 @@ module RequestAuditing
 
       CORRELATION_ID_KEY = 'HTTP_CORRELATION_ID'.freeze
       REQUEST_ID_KEY = 'HTTP_REQUEST_ID'.freeze
-      PARENT_ID_KEY = 'HTTP_PARENT_ID'.freeze
+      PARENT_REQUEST_ID_KEY = 'HTTP_PARENT_REQUEST_ID'.freeze
       DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%L'.freeze
 
       def initialize
@@ -18,11 +18,12 @@ module RequestAuditing
         msg_str = msg2str(msg)
         correlation_id_tag = dump_env_variable(CORRELATION_ID_KEY)
         request_id_tag = dump_env_variable(REQUEST_ID_KEY)
-        parent_id_tag = dump_env_variable(PARENT_ID_KEY)
+        parent_request_id_tag = dump_env_variable(PARENT_REQUEST_ID_KEY)
         timestamp = datetime.strftime(@datetime_format)
         message = "#{timestamp} [#{progname}] #{severity} #{msg_str} - " \
                   "correlation_id=#{correlation_id_tag}, " \
-                  "request_id=#{request_id_tag}, parent_id=#{parent_id_tag}\n"
+                  "request_id=#{request_id_tag}, " \
+                  "parent_id=#{parent_request_id_tag}\n"
         return message
       end
 

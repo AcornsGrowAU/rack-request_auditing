@@ -22,7 +22,7 @@ describe RequestAuditing::AuditLogging::Formatter do
       allow(subject).to receive(:dump_env_variable)
         .with(RequestAuditing::AuditLogging::Formatter::REQUEST_ID_KEY)
       allow(subject).to receive(:dump_env_variable)
-        .with(RequestAuditing::AuditLogging::Formatter::PARENT_ID_KEY)
+        .with(RequestAuditing::AuditLogging::Formatter::PARENT_REQUEST_ID_KEY)
     end
 
     it 'dumps the message appropriately' do
@@ -44,7 +44,7 @@ describe RequestAuditing::AuditLogging::Formatter do
 
     it 'dumps the parent id header' do
       expect(subject).to receive(:dump_env_variable)
-        .with(RequestAuditing::AuditLogging::Formatter::PARENT_ID_KEY)
+        .with(RequestAuditing::AuditLogging::Formatter::PARENT_REQUEST_ID_KEY)
       subject.call(severity, datetime, progname, msg)
     end
 
@@ -64,7 +64,7 @@ describe RequestAuditing::AuditLogging::Formatter do
         .with(RequestAuditing::AuditLogging::Formatter::REQUEST_ID_KEY)
         .and_return('REQUEST_ID')
       allow(subject).to receive(:dump_env_variable)
-        .with(RequestAuditing::AuditLogging::Formatter::PARENT_ID_KEY)
+        .with(RequestAuditing::AuditLogging::Formatter::PARENT_REQUEST_ID_KEY)
         .and_return('PARENT_ID')
       allow(datetime).to receive(:strftime).and_return('FORMATTEDTIME')
       expect(subject.call(severity, datetime, progname, msg))

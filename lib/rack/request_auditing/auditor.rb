@@ -12,7 +12,7 @@ module Rack
 
       def initialize(app, options = {})
         @app = app
-        @logger = options[:logger] || ::RequestAuditing::Logger.new(STDOUT)
+        @logger = options[:logger]
       end
 
       def call(env)

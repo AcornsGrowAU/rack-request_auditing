@@ -27,9 +27,7 @@ describe 'Rack::RequestAuditing middleware' do
         header 'Correlation-Id', '1234'
         get '/foo'
         expect(last_response.status).to eq 422
-        expect(last_response.headers).not_to include('Correlation-Id')
-        expect(last_response.headers).to include('Request-Id')
-        expect(last_response.body).to include 'Invalid Correlation Id'
+        expect(last_response.body).to include('Invalid headers')
       end
     end
   end
@@ -58,9 +56,7 @@ describe 'Rack::RequestAuditing middleware' do
         header 'Request-Id', '1234'
         get '/foo'
         expect(last_response.status).to eq 422
-        expect(last_response.headers).to include('Correlation-Id')
-        expect(last_response.headers).not_to include('Request-Id')
-        expect(last_response.body).to include 'Invalid Request Id'
+        expect(last_response.body).to include 'Invalid headers'
       end
     end
   end
@@ -70,6 +66,34 @@ describe 'Rack::RequestAuditing middleware' do
       get '/foo'
       id = last_response.headers['Request-Id']
       expect(id).not_to be_nil
+    end
+  end
+
+  context 'when the parent request id is set' do
+    context 'when the parent request id is valid' do
+      it 'does not reset the parent request id' do
+        original_id = '4217e30490b1cbc3'
+        header 'Parent-Request-Id', original_id
+        get '/foo'
+        id = last_response.headers['Parent-Request-Id']
+        expect(id).to eq original_id
+      end
+    end
+
+    context 'when the parent request id is invalid' do
+      it 'returns error response' do
+        header 'Parent-Request-Id', '1234'
+        get '/foo'
+        expect(last_response.status).to eq 422
+        expect(last_response.body).to include('Invalid headers')
+      end
+    end
+  end
+
+  context 'when the parent request id is not set' do
+    it 'does not set the parent request id' do
+      get '/foo'
+      expect(last_response).not_to include('Parent-Request-Id')
     end
   end
 end

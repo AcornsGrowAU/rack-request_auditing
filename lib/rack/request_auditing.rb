@@ -1,5 +1,6 @@
 require 'rack/request_auditing/auditor'
 require 'rack/request_auditing/context'
+require 'rack/request_auditing/context_singleton'
 require 'rack/request_auditing/header_processor'
 require 'rack/request_auditing/message_annotator'
 require 'rack/request_auditing/id'

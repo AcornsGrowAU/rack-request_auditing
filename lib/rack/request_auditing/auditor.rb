@@ -1,16 +1,15 @@
 module Rack
   module RequestAuditing
     class Auditor
-      class InvalidExternalId < StandardError; end
-
       CORRELATION_ID_KEY = 'HTTP_CORRELATION_ID'.freeze
       CORRELATION_ID_HEADER = 'Correlation-Id'.freeze
       REQUEST_ID_KEY = 'HTTP_REQUEST_ID'.freeze
       REQUEST_ID_HEADER = 'Request-Id'.freeze
+      PARENT_REQUEST_ID_KEY = 'HTTP_PARENT_REQUEST_ID'.freeze
+      PARENT_REQUEST_ID_HEADER = 'Parent-Request-Id'.freeze
 
-      def initialize(app, options = {})
+      def initialize(app)
         @app = app
-        @logger = options[:logger]
       end
 
       def call(env)
@@ -18,56 +17,61 @@ module Rack
       end
 
       def _call(env)
-        set_audit_logger(env)
-        logger = env[Rack::RequestAuditing::LOGGER_KEY]
-        ensure_valid_ids(env)
-        logger.info 'sr'
+        ensure_valid_context_ids(env)
+        handle_invalid_ids(env)
+        Rack::RequestAuditing.log_typed_event('Server Receive', :sr)
         response = build_response(env)
-        logger.info 'ss'
+        # At this point all synchronous client interactions should be complete.
+        # Async client interactions are in different threads, so the client
+        # context wouldn't be set in this thread anyway.
+        Rack::RequestAuditing::ContextSingleton.unset_client_context
+        Rack::RequestAuditing.log_typed_event('Server Send', :ss)
         return response
       end
 
       private
 
-      def set_audit_logger(env)
-        audit_logger = @logger.dup
-        unless audit_logger.is_a?(::RequestAuditing::Logger)
-          audit_logger.extend(::RequestAuditing::AuditLogging)
-        end
-        audit_logger.set_formatter_env(env)
-        env[Rack::RequestAuditing::LOGGER_KEY] = audit_logger
+      def ensure_valid_context_id(attribute, id, generate_if_invalid)
+        id = Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(id, generate_if_invalid)
+        Rack::RequestAuditing::ContextSingleton.server_context.send("#{attribute}=", id)
       end
 
-      def ensure_valid_ids(env)
-        Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, CORRELATION_ID_KEY)
-        Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(env, REQUEST_ID_KEY)
+      def ensure_valid_context_ids(env)
+        ensure_valid_context_id(:correlation_id, env[CORRELATION_ID_KEY], true)
+        ensure_valid_context_id(:request_id, env[REQUEST_ID_KEY], true)
+        ensure_valid_context_id(:parent_request_id, env[PARENT_REQUEST_ID_KEY], false)
+      end
+
+      def check_invalid_header(env, env_key, context_value)
+        env_value = env[env_key]
+        if env_value && env_value != context_value
+          @invalid_headers = true
+          Rack::RequestAuditing.logger.error("Replaced invalid #{env_key} \"#{env_value}\" with \"#{context_value}\"")
+        end
+      end
+
+      def handle_invalid_ids(env)
+        check_invalid_header(env, CORRELATION_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.correlation_id)
+        check_invalid_header(env, REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.request_id)
+        check_invalid_header(env, PARENT_REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.parent_request_id)
       end
 
       def build_response(env)
-        correlation_id = env[CORRELATION_ID_KEY]
-        request_id = env[REQUEST_ID_KEY]
-
-        if correlation_id && request_id
-          status, headers, body = @app.call(env)
+        if @invalid_headers
+          status, headers, body = error_headers_response
         else
-          status, headers, body = error_response(env)
+          status, headers, body = @app.call(env)
         end
 
-        headers[CORRELATION_ID_HEADER] = correlation_id if correlation_id
-        headers[REQUEST_ID_HEADER] = request_id if request_id
+        headers[CORRELATION_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.correlation_id
+        headers[REQUEST_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.request_id
+        headers[PARENT_REQUEST_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.parent_request_id
 
         return [ status, headers, body ]
       end
 
-      def error_response(env)
-        return [ 422, {}, error_body(env) ]
-      end
-
-      def error_body(env)
-        errors = []
-        errors << 'Invalid Correlation Id' if env[CORRELATION_ID_KEY].nil?
-        errors << 'Invalid Request Id' if env[REQUEST_ID_KEY].nil?
-        return [ errors.join(' and ') ]
+      def error_headers_response
+        return [ 422, {}, ['Invalid headers'] ]
       end
     end
   end

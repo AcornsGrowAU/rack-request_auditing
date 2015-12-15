@@ -2,6 +2,7 @@ require 'rack/request_auditing/auditor'
 require 'rack/request_auditing/context'
 require 'rack/request_auditing/context_singleton'
 require 'rack/request_auditing/header_processor'
+require 'rack/request_auditing/log_formatter'
 require 'rack/request_auditing/message_annotator'
 require 'rack/request_auditing/id'
 require 'rack/request_auditing/id_generator'
@@ -12,6 +13,8 @@ module Rack
     def self.new(app, options = {})
       if options[:logger]
         @logger = options[:logger]
+      else
+        @logger = formatted_logger
       end
 
       return Auditor.new(app)
@@ -19,6 +22,12 @@ module Rack
 
     def self.logger
       return @logger
+    end
+
+    def self.formatted_logger
+      return ::Logger.new(STDOUT).tap do |l|
+        l.formatter = Rack::RequestAuditing::LogFormatter.new
+      end
     end
 
     def self.log_typed_event(msg, type)

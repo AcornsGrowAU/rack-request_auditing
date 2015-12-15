@@ -70,15 +70,32 @@ use Rack::RequestAuditing, logger: Logger.new(STDOUT)
 
 When this option is not provided, a `STDOUT` logger instance will be created.
 
-The logger instance will be extended with `RequestAuditing::AuditLogging` and
-made available in the rack environment as `rack.header`.  Logging with
-this instance will produce logs tagged with the correlation, request, and parent
-id values.
+The logger formatter will be set to an instance of
+`Rack::RequestAuditing::LogFormatter`.  This formatter will produce logs tagged
+with the correlation, request, and parent request id values.
 
-For example, `env["rack.header"].info("foo")` will produce:
-`2015-12-09 18:06:11,002 [] INFO foo - correlation_id="9d9ea84356799aac", request_id="07dce5aafdcf2731", parent_id=null`
+The logger will be available as the global `Rack::RequestAuditing.logger`.
+
+For example, `Rack::RequestAuditing.logger.info("foo")` will produce:
+
+`2015-12-14 15:24:08,623 [] INFO foo {correlation_id="79253bac5fc8585c"} {request_id="56c75fa710fe6552"} {parent_request_id=null}`
 
 When a value is not available, it will be logged as `null`.
+
+The utility method `Rack::RequestAuditing.log_typed_event` is available for
+logging with types (`:sr`, `:ss`, `:cs`, `:cr`).
+
+`Rack::RequestAuditing.log_typed_event('Client Send', :cs)` produces:
+
+`2015-12-14 15:24:08,655 [] INFO Client Send {type="cs"} {correlation_id="79253bac5fc8585c"} {request_id="af32fcbf5c974e08"} {parent_request_id="56c75fa710fe6552"}`
+
+If your application has its own formatter, the context is globally accessible as
+`Rack::RequestAuditing::ContextSingleton.context`.  This context object has the
+accessors `correlation_id`, `request_id`, and `parent_request_id`.
+
+When building a client, use `Rack::RequestAuditing::ContextSingleton.set_client_context`
+to set the global client context and `Rack::RequestAuditing::ContextSingleton.unset_client_context`
+to unset the global client context.
 
 ## Development
 

@@ -45,6 +45,14 @@ describe Rack::RequestAuditing::Id do
     end
   end
 
+  describe '.hex' do
+    it 'returns the hex representation of a new id' do
+      id = double('id instance', to_hex: '4217e30490b1cbc3')
+      allow(described_class).to receive(:new).and_return(id)
+      expect(described_class.hex).to eq '4217e30490b1cbc3'
+    end
+  end
+
   describe '.generate_value' do
     it 'returns a random value up to upper bound' do
       random_value = double('random int')

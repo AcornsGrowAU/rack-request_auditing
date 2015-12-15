@@ -1,5 +1,3 @@
-require 'request_auditing/audit_logging'
-
 module Rack
   module RequestAuditing
     class Auditor

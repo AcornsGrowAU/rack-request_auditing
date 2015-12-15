@@ -97,6 +97,43 @@ When building a client, use `Rack::RequestAuditing::ContextSingleton.set_client_
 to set the global client context and `Rack::RequestAuditing::ContextSingleton.unset_client_context`
 to unset the global client context.
 
+### HTTPClient example
+```
+require 'rack/request_auditing'
+require 'httpclient'
+
+class AuditedClient < HTTPClient
+  class ContextFilter
+    CORRELATION_ID_HEADER = 'Correlation-Id'
+    REQUEST_ID_HEADER = 'Request-Id'
+    PARENT_REQUEST_ID_HEADER = 'Parent-Request-Id'
+
+    def initialize(client)
+      @client = client
+    end
+
+    def filter_request(req)
+      Rack::RequestAuditing::ContextSingleton.set_client_context
+      Rack::RequestAuditing::ContextSingleton.correlation_id = req.header[CORRELATION_ID_HEADER].first
+      Rack::RequestAuditing::ContextSingleton.request_id = req.header[REQUEST_ID_HEADER].first
+      Rack::RequestAuditing::ContextSingleton.parent_request_id = req.header[PARENT_REQUEST_ID_HEADER].first
+      Rack::RequestAuditing.log_typed_event('Client Send', :cs)
+    end
+
+    def filter_response(req, res)
+      Rack::RequestAuditing.log_typed_event('Client Receive', :cr)
+      Rack::RequestAuditing::ContextSingleton.unset_client_context
+    end
+  end
+
+  def initialize(*args)
+    super
+    @header_filter = ContextFilter.new(self)
+    @request_filter << @header_filter
+  end
+end
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then,

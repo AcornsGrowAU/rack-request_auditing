@@ -6,7 +6,7 @@ describe 'Rack::RequestAuditing middleware' do
 
   def app
     Rack::Builder.app do
-      use Rack::RequestAuditing
+      use Rack::RequestAuditing, logger: Logger.new('/dev/null')
       run lambda { |env| [123, {}, ['foo']] }
     end
   end

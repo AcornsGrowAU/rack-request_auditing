@@ -17,10 +17,6 @@ module Rack
         return sprintf('%016x', @value)
       end
 
-      def self.hex
-        return self.new.to_hex
-      end
-
       private
 
       def generate_value

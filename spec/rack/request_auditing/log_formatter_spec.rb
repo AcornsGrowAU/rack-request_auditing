@@ -50,6 +50,23 @@ describe Rack::RequestAuditing::LogFormatter do
   end
 
   describe '#context_tags' do
+    it 'gets correlation id from current context' do
+      expect(Rack::RequestAuditing::ContextSingleton)
+        .to receive(:correlation_id)
+      subject.context_tags
+    end
+
+    it 'gets request id from current context' do
+      expect(Rack::RequestAuditing::ContextSingleton).to receive(:request_id)
+      subject.context_tags
+    end
+
+    it 'gets parent request id from current context' do
+      expect(Rack::RequestAuditing::ContextSingleton)
+        .to receive(:parent_request_id)
+      subject.context_tags
+    end
+
     it 'returns a hash of the current context attributes' do
       correlation_id = double('correlation id')
       request_id = double('request id')
@@ -58,8 +75,8 @@ describe Rack::RequestAuditing::LogFormatter do
         .and_return(correlation_id)
       allow(Rack::RequestAuditing::ContextSingleton).to receive(:request_id)
         .and_return(request_id)
-      allow(Rack::RequestAuditing::ContextSingleton).to receive(:parent_request_id)
-        .and_return(parent_request_id)
+      allow(Rack::RequestAuditing::ContextSingleton)
+        .to receive(:parent_request_id).and_return(parent_request_id)
       expect(subject.context_tags).to eq(
         {
           correlation_id: correlation_id,

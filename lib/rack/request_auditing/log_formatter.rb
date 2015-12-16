@@ -4,7 +4,6 @@ module Rack
   module RequestAuditing
     class LogFormatter < ::Logger::Formatter
       DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%L'.freeze
-      CONTEXT_ATTRIBUTES = [ :correlation_id, :request_id, :parent_request_id ]
 
       def initialize
         @datetime_format = DATETIME_FORMAT
@@ -19,10 +18,10 @@ module Rack
       end
 
       def context_tags
-        tags = CONTEXT_ATTRIBUTES.map do |attribute|
-          value = Rack::RequestAuditing::ContextSingleton.send(attribute)
-          [ attribute, value ]
-        end.to_h
+        tags = {}
+        tags[:correlation_id] = Rack::RequestAuditing::ContextSingleton.correlation_id
+        tags[:request_id] = Rack::RequestAuditing::ContextSingleton.request_id
+        tags[:parent_request_id] = Rack::RequestAuditing::ContextSingleton.parent_request_id
         return tags
       end
     end

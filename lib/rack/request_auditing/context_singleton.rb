@@ -6,27 +6,22 @@ module Rack
       extend SingleForwardable
       def_delegators :context, :correlation_id, :correlation_id=, :request_id, :request_id=, :parent_request_id, :parent_request_id=
 
-      SERVER_CONTEXT_KEY = 'rack.request_auditing.server_context'.freeze
-      CLIENT_CONTEXT_KEY = 'rack.request_auditing.client_context'.freeze
+      CONTEXT_KEY = 'rack.request_auditing.context'.freeze
 
       def self.context
-        return client_context || server_context
+        return Thread.current[CONTEXT_KEY] ||= Rack::RequestAuditing::Context.new
       end
 
-      def self.server_context
-        return Thread.current[SERVER_CONTEXT_KEY] ||= Rack::RequestAuditing::Context.new
-      end
-
-      def self.client_context
-        return Thread.current[CLIENT_CONTEXT_KEY]
-      end
-
-      def self.set_client_context
-        Thread.current[CLIENT_CONTEXT_KEY] = Rack::RequestAuditing::Context.new
-      end
-
-      def self.unset_client_context
-        Thread.current[CLIENT_CONTEXT_KEY] = nil
+      def self.set_attribute(attribute, value)
+        symbolized_attribute = attribute.to_sym
+        case symbolized_attribute
+        when :correlation_id
+          context.correlation_id = value
+        when :request_id
+          context.request_id = value
+        when :parent_request_id
+          context.parent_request_id = value
+        end
       end
     end
   end

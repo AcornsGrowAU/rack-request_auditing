@@ -63,15 +63,6 @@ describe Rack::RequestAuditing::Auditor do
       subject._call(env)
     end
 
-    it 'unsets the client context' do
-      allow(subject).to receive(:ensure_valid_context_ids).with(env)
-      allow(subject).to receive(:handle_invalid_ids).with(env)
-      allow(subject).to receive(:build_response).with(env)
-      expect(Rack::RequestAuditing::ContextSingleton)
-        .to receive(:unset_client_context)
-      subject._call(env)
-    end
-
     it 'logs the server sending a response' do
       allow(subject).to receive(:ensure_valid_context_ids).with(env)
       allow(subject).to receive(:handle_invalid_ids).with(env)
@@ -93,16 +84,11 @@ describe Rack::RequestAuditing::Auditor do
   describe '#ensure_valid_context_id' do
     let(:id) { double('id') }
     let(:generate) { double('generate if invalid flag') }
-    let(:server_context) { double('service context').as_null_object }
-
-    before do
-      allow(Rack::RequestAuditing::ContextSingleton)
-        .to receive(:server_context).and_return(server_context)
-    end
 
     it 'ensures the id is valid' do
       expect(Rack::RequestAuditing::HeaderProcessor)
         .to receive(:ensure_valid_id).with(id, generate)
+      allow(Rack::RequestAuditing::ContextSingleton).to receive(:set_attribute)
       subject.send(:ensure_valid_context_id, double, id, generate)
     end
 
@@ -110,7 +96,8 @@ describe Rack::RequestAuditing::Auditor do
       valid_id = double('valid id')
       allow(Rack::RequestAuditing::HeaderProcessor).to receive(:ensure_valid_id)
         .with(id, generate).and_return(valid_id)
-      expect(server_context).to receive('attribute_name=').with(valid_id)
+      expect(Rack::RequestAuditing::ContextSingleton).to receive(:set_attribute)
+        .with('attribute_name', valid_id)
       subject.send(:ensure_valid_context_id, 'attribute_name', id, generate)
     end
   end
@@ -221,9 +208,9 @@ describe Rack::RequestAuditing::Auditor do
     let(:correlation_id) { double('correlation id') }
     let(:request_id) { double('request id') }
     let(:parent_request_id) { double('parent request id') }
-    let(:server_context) do
+    let(:context) do
       double(
-        'service context',
+        'context',
         correlation_id: correlation_id,
         request_id: request_id,
         parent_request_id: parent_request_id
@@ -231,8 +218,8 @@ describe Rack::RequestAuditing::Auditor do
     end
 
     before do
-      allow(Rack::RequestAuditing::ContextSingleton)
-        .to receive(:server_context).and_return(server_context)
+      allow(Rack::RequestAuditing::ContextSingleton).to receive(:context)
+        .and_return(context)
     end
 
     it 'checks correlation id' do
@@ -271,9 +258,9 @@ describe Rack::RequestAuditing::Auditor do
     let(:correlation_id) { double('correlation id') }
     let(:request_id) { double('request id') }
     let(:parent_request_id) { double('parent request id') }
-    let(:server_context) do
+    let(:context) do
       double(
-        'service context',
+        'context',
         correlation_id: correlation_id,
         request_id: request_id,
         parent_request_id: parent_request_id
@@ -281,8 +268,8 @@ describe Rack::RequestAuditing::Auditor do
     end
 
     before do
-      allow(Rack::RequestAuditing::ContextSingleton)
-        .to receive(:server_context).and_return(server_context)
+      allow(Rack::RequestAuditing::ContextSingleton).to receive(:context)
+        .and_return(context)
     end
 
     context 'when there are no invalid headers' do

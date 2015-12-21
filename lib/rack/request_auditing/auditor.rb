@@ -21,10 +21,6 @@ module Rack
         handle_invalid_ids(env)
         Rack::RequestAuditing.log_typed_event('Server Receive', :sr)
         response = build_response(env)
-        # At this point all synchronous client interactions should be complete.
-        # Async client interactions are in different threads, so the client
-        # context wouldn't be set in this thread anyway.
-        Rack::RequestAuditing::ContextSingleton.unset_client_context
         Rack::RequestAuditing.log_typed_event('Server Send', :ss)
         return response
       end
@@ -33,7 +29,7 @@ module Rack
 
       def ensure_valid_context_id(attribute, id, generate_if_invalid)
         id = Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(id, generate_if_invalid)
-        Rack::RequestAuditing::ContextSingleton.server_context.send("#{attribute}=", id)
+        Rack::RequestAuditing::ContextSingleton.set_attribute(attribute, id)
       end
 
       def ensure_valid_context_ids(env)
@@ -51,9 +47,9 @@ module Rack
       end
 
       def handle_invalid_ids(env)
-        check_invalid_header(env, CORRELATION_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.correlation_id)
-        check_invalid_header(env, REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.request_id)
-        check_invalid_header(env, PARENT_REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.server_context.parent_request_id)
+        check_invalid_header(env, CORRELATION_ID_KEY, Rack::RequestAuditing::ContextSingleton.correlation_id)
+        check_invalid_header(env, REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.request_id)
+        check_invalid_header(env, PARENT_REQUEST_ID_KEY, Rack::RequestAuditing::ContextSingleton.parent_request_id)
       end
 
       def build_response(env)

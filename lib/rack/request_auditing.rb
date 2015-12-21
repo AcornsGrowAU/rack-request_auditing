@@ -1,5 +1,6 @@
 require 'rack/request_auditing/auditor'
 require 'rack/request_auditing/context'
+require 'rack/request_auditing/context_logger'
 require 'rack/request_auditing/context_singleton'
 require 'rack/request_auditing/header_processor'
 require 'rack/request_auditing/log_formatter'
@@ -25,8 +26,8 @@ module Rack
     end
 
     def self.formatted_logger
-      return ::Logger.new(STDOUT).tap do |l|
-        l.formatter = Rack::RequestAuditing::LogFormatter.new
+      return Rack::RequestAuditing::ContextLogger.new(STDOUT).tap do |logger|
+        logger.context = Rack::RequestAuditing::ContextSingleton
       end
     end
 

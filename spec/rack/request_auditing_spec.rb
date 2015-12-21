@@ -50,25 +50,26 @@ describe Rack::RequestAuditing do
   end
 
   describe '.formatted_logger' do
-    it 'creates a new logger to STDOUT' do
+    it 'creates a new context logger to STDOUT' do
       logger = double('logger').as_null_object
-      expect(::Logger).to receive(:new).with(STDOUT).and_return(logger)
+      expect(Rack::RequestAuditing::ContextLogger).to receive(:new).with(STDOUT)
+        .and_return(logger)
       Rack::RequestAuditing.formatted_logger
     end
 
-    it 'sets the formatter on the new logger' do
+    it 'sets the context on the new logger to the context singleton' do
       logger = double('logger').as_null_object
-      allow(::Logger).to receive(:new).with(STDOUT).and_return(logger)
-      formatter = double('formatter')
-      allow(Rack::RequestAuditing::LogFormatter).to receive(:new)
-        .and_return(formatter)
-      expect(logger).to receive(:formatter=).with(formatter)
+      allow(Rack::RequestAuditing::ContextLogger).to receive(:new).with(STDOUT)
+        .and_return(logger)
+      expect(logger).to receive(:context=)
+        .with(Rack::RequestAuditing::ContextSingleton)
       Rack::RequestAuditing.formatted_logger
     end
 
     it 'returns the formatted logger' do
       logger = double('logger').as_null_object
-      allow(::Logger).to receive(:new).with(STDOUT).and_return(logger)
+      allow(Rack::RequestAuditing::ContextLogger).to receive(:new).with(STDOUT)
+        .and_return(logger)
       expect(Rack::RequestAuditing.formatted_logger).to eq logger
     end
   end

@@ -73,29 +73,4 @@ describe Rack::RequestAuditing do
       expect(Rack::RequestAuditing.formatted_logger).to eq logger
     end
   end
-
-  describe '.log_typed_event' do
-    let(:msg) { double('message') }
-    let(:type) { double('type') }
-    let(:logger) { double('logger') }
-
-    before do
-      allow(Rack::RequestAuditing).to receive(:logger).and_return(logger)
-      allow(logger).to receive(:info)
-    end
-
-    it 'annotates the message with the type' do
-      expect(Rack::RequestAuditing::MessageAnnotator).to receive(:annotate)
-        .with(msg, type: type)
-      Rack::RequestAuditing.log_typed_event(msg, type)
-    end
-
-    it 'logs the annotated message' do
-      annotated_message = double('annotated message')
-      allow(Rack::RequestAuditing::MessageAnnotator).to receive(:annotate)
-        .with(msg, type: type).and_return(annotated_message)
-      expect(logger).to receive(:info).with(annotated_message)
-      Rack::RequestAuditing.log_typed_event(msg, type)
-    end
-  end
 end

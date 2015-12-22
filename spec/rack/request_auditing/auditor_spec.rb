@@ -30,7 +30,7 @@ describe Rack::RequestAuditing::Auditor do
     let(:env) { double('env') }
 
     before do
-      allow(Rack::RequestAuditing).to receive(:log_typed_event)
+      allow(subject).to receive(:log_typed_event)
     end
 
     it 'ensures valid ids' do
@@ -50,8 +50,7 @@ describe Rack::RequestAuditing::Auditor do
     it 'logs the server receiving a request' do
       allow(subject).to receive(:ensure_valid_context_ids).with(env)
       allow(subject).to receive(:handle_invalid_ids).with(env)
-      expect(Rack::RequestAuditing).to receive(:log_typed_event)
-        .with('Server Receive', :sr)
+      expect(subject).to receive(:log_typed_event).with('Server Receive', :sr)
       allow(subject).to receive(:build_response).with(env)
       subject._call(env)
     end
@@ -66,8 +65,7 @@ describe Rack::RequestAuditing::Auditor do
     it 'logs the server sending a response' do
       allow(subject).to receive(:ensure_valid_context_ids).with(env)
       allow(subject).to receive(:handle_invalid_ids).with(env)
-      expect(Rack::RequestAuditing).to receive(:log_typed_event)
-        .with('Server Send', :ss)
+      expect(subject).to receive(:log_typed_event).with('Server Send', :ss)
       allow(subject).to receive(:build_response).with(env)
       subject._call(env)
     end
@@ -78,6 +76,31 @@ describe Rack::RequestAuditing::Auditor do
       response = double('response')
       allow(subject).to receive(:build_response).with(env).and_return(response)
       expect(subject._call(env)).to eq response
+    end
+  end
+
+  describe '#log_typed_event' do
+    let(:msg) { double('message') }
+    let(:type) { double('type') }
+    let(:logger) { double('logger') }
+
+    before do
+      allow(Rack::RequestAuditing).to receive(:logger).and_return(logger)
+      allow(logger).to receive(:info)
+    end
+
+    it 'annotates the message with the type' do
+      expect(Rack::RequestAuditing::MessageAnnotator).to receive(:annotate)
+        .with(msg, type: type)
+      subject.send(:log_typed_event, msg, type)
+    end
+
+    it 'logs the annotated message' do
+      annotated_message = double('annotated message')
+      allow(Rack::RequestAuditing::MessageAnnotator).to receive(:annotate)
+        .with(msg, type: type).and_return(annotated_message)
+      expect(logger).to receive(:info).with(annotated_message)
+      subject.send(:log_typed_event, msg, type)
     end
   end
 

@@ -19,13 +19,18 @@ module Rack
       def _call(env)
         ensure_valid_context_ids(env)
         handle_invalid_ids(env)
-        Rack::RequestAuditing.log_typed_event('Server Receive', :sr)
+        log_typed_event('Server Receive', :sr)
         response = build_response(env)
-        Rack::RequestAuditing.log_typed_event('Server Send', :ss)
+        log_typed_event('Server Send', :ss)
         return response
       end
 
       private
+
+      def log_typed_event(msg, type)
+        message = Rack::RequestAuditing::MessageAnnotator.annotate(msg, type: type)
+        Rack::RequestAuditing.logger.info(message)
+      end
 
       def ensure_valid_context_id(attribute, id, generate_if_invalid)
         id = Rack::RequestAuditing::HeaderProcessor.ensure_valid_id(id, generate_if_invalid)

@@ -30,10 +30,5 @@ module Rack
         logger.context = Rack::RequestAuditing::ContextSingleton
       end
     end
-
-    def self.log_typed_event(msg, type)
-      message = Rack::RequestAuditing::MessageAnnotator.annotate(msg, type: type)
-      Rack::RequestAuditing.logger.info(message)
-    end
   end
 end

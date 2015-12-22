@@ -166,6 +166,15 @@ class AuditedClient < HTTPClient
     @request_filter << @header_filter
   end
 end
+
+client = AuditedClient.new
+child = Rack::RequestAuditing::ContextSingleton.create_child_context
+child_context_headers = {
+  'Correlation-Id' => child.correlation_id,
+  'Parent-Request-Id' => child.parent_request_id,
+  'Request-Id' => child.request_id
+}
+response = client.get('https://www.google.com', header: child_context_headers)
 ```
 
 ## Development

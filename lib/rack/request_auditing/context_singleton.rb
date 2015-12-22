@@ -4,7 +4,7 @@ module Rack
   module RequestAuditing
     class ContextSingleton
       extend SingleForwardable
-      def_delegators :context, :correlation_id, :correlation_id=, :request_id, :request_id=, :parent_request_id, :parent_request_id=
+      def_delegators :context, :correlation_id, :correlation_id=, :request_id, :request_id=, :parent_request_id, :parent_request_id=, :create_child_context
 
       CONTEXT_KEY = 'rack.request_auditing.context'.freeze
 

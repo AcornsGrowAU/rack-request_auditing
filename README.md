@@ -92,7 +92,7 @@ is available for annotating messages with tags in the same format used by
 
 `Rack::RequestAuditing::MessageAnnotator.annotate("foo", { bar: "baz" })` produces:
 
-`foo {bar=\"baz\"}"`
+`foo {bar=\"baz\"}`
 
 If your application logger has its own formatter, the context is globally
 accessible as `Rack::RequestAuditing::ContextSingleton`.  This context object

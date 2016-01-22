@@ -66,7 +66,9 @@ module Rack
 
         headers[CORRELATION_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.correlation_id
         headers[REQUEST_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.request_id
-        headers[PARENT_REQUEST_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.parent_request_id
+        if Rack::RequestAuditing::ContextSingleton.parent_request_id
+          headers[PARENT_REQUEST_ID_HEADER] = Rack::RequestAuditing::ContextSingleton.parent_request_id
+        end
 
         return [ status, headers, body ]
       end

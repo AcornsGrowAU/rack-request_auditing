@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## v0.1.1 - 2016-01-22
+
 - Only include Parent-Request-Id header when not nil
 
 ## v0.1.0 - 2015-12-28

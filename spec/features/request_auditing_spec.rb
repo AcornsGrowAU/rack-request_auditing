@@ -93,7 +93,7 @@ describe 'Rack::RequestAuditing middleware' do
   context 'when the parent request id is not set' do
     it 'does not set the parent request id' do
       get '/foo'
-      expect(last_response).not_to include('Parent-Request-Id')
+      expect(last_response.headers.has_key?('Parent-Request-Id')).to be_falsey
     end
   end
 end

@@ -12,7 +12,7 @@ Add this line to your application's Gemfile with your desired version number.
 Be sure to have our gem source set correctly to [gemfury.com](https://gemfury.com)'s settings.
 
 ```ruby
-gem 'rack-request_auditing', '~> 0.1'
+gem 'rack-request_auditing', '~> 0.2'
 ```
 
 And then execute:
@@ -75,14 +75,14 @@ use Rack::RequestAuditing, logger: Logger.new(STDOUT)
 When this option is not provided, a `Rack::RequestAuditing::ContextLogger`
 logger will be created to `STDOUT`.  This logger automatically includes the
 server context in log messages and uses `Rack::RequestAuditing::LogFormatter`.
-This formatter has the datetime format `%Y-%m-%d %H:%M:%S,%L` and the message
-format `%{time} [%{progname}] %{severity} %{msg}\n`.
+This formatter has the datetime format `%FT%T.%L%z` and the message format
+`app="%{progname}" severity="%{severity}" time="%{time}" %{msg}\n`.
 
 The logger will be available as the global `Rack::RequestAuditing.logger`.
 
 For example, `Rack::RequestAuditing.logger.info("foo")` will produce:
 
-`2015-12-14 15:24:08,623 [] INFO foo {correlation_id="79253bac5fc8585c"} {request_id="56c75fa710fe6552"} {parent_request_id=null}`
+`app="" severity="INFO" time="2016-06-07T12:35:12.729-0700" correlation_id="ae1bdb074dfc26f6" request_id="637df157d19857d1" parent_request_id="" foo`
 
 When a value is not available, it will be logged as `null`.
 
@@ -92,7 +92,7 @@ is available for annotating messages with tags in the same format used by
 
 `Rack::RequestAuditing::MessageAnnotator.annotate("foo", { bar: "baz" })` produces:
 
-`foo {bar=\"baz\"}`
+`bar=\"baz\" foo`
 
 If your application logger has its own formatter, the context is globally
 accessible as `Rack::RequestAuditing::ContextSingleton`.  This context object

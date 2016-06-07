@@ -5,19 +5,19 @@ module Rack
         annotations = tags.map do |tag, tag_value|
           format_tag(tag, tag_value)
         end.join(' ')
-        return "#{msg} #{annotations}"
+        return "#{annotations} #{msg}"
       end
 
       def self.format_tag(tag, tag_value)
         formatted_tag_value = format_tag_value(tag_value)
-        return "{#{tag}=#{formatted_tag_value}}"
+        return "#{tag}=#{formatted_tag_value}"
       end
 
       def self.format_tag_value(tag_value)
         if tag_value
           return "\"#{tag_value}\""
         else
-          return 'null'
+          return "\"\""
         end
       end
     end

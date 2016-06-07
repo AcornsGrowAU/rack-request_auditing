@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Update log format to make sumologic keyvalue work
 
 ## v0.1.1 - 2016-01-22
 

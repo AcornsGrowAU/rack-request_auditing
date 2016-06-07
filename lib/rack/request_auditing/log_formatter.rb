@@ -3,8 +3,8 @@ require 'logger'
 module Rack
   module RequestAuditing
     class LogFormatter < ::Logger::Formatter
-      DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%L'.freeze
-      MESSAGE_FORMAT = "%{time} [%{progname}] %{severity} %{msg}\n".freeze
+      DATETIME_FORMAT = '%FT%T.%L%z'.freeze
+      MESSAGE_FORMAT = "app=\"%{progname}\" severity=\"%{severity}\" time=\"%{time}\" %{msg}\n".freeze
 
       def initialize
         @datetime_format = DATETIME_FORMAT

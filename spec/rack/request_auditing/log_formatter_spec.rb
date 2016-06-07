@@ -34,7 +34,7 @@ describe Rack::RequestAuditing::LogFormatter do
       allow(subject).to receive(:context_tags).and_return(context_tags)
       allow(datetime).to receive(:strftime).and_return('FORMATTEDTIME')
       expect(subject.call(severity, datetime, progname, msg))
-        .to eq "FORMATTEDTIME [PROGNAME] SEVERITY FOOBAR\n"
+        .to eq "app=\"PROGNAME\" severity=\"SEVERITY\" time=\"FORMATTEDTIME\" FOOBAR\n"
     end
   end
 end
